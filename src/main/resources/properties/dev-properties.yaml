@@ -1,16 +1,21 @@
+#API Autodiscovery
+api:
+  id: "20750238"
+
 #HTTP Listener Configuration
 http:
-  port: "8082"
+  port: "8081"
   timeout: "60000"
   connectionIdleTimeout: "60000"
 
 #SQL Database Configuration
 db:
-  host: "35.198.240.203"
+  host: "heritage-bookshop-db.c07m2ys8msgn.us-east-1.rds.amazonaws.com"
   port: "3306"
-  name: "heritage_bookshop_db"
+  name: "heritage-bookshop-db"
   username: "![kVSLxCwjLTCGofsgbUDe0g==]"
   password: "![px5ALOS3RlCJfRVLHV9S1g==]"
+  
   
 #Pre-Defined Parameters
 app:
