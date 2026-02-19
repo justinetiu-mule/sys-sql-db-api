@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<sub-flow name="post-sales-items-sub-flow" doc:id="0e59c92d-8081-422b-aa7a-4b905dc0413d" >
+		<ee:transform doc:name="Map Request Payload to Sales Items Table Columns" doc:id="506f7441-a7f9-40bf-a2f6-b5a2a8619e9b" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable resource="dataweave/createSalesItemsDBMappingPayload.dwl" variableName="createSalesItemsDBPayload" />
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Before Bulk Insert Sales Items to DB" doc:id="e47f7078-5eb5-45c0-9b91-ce66c1e8dc44" message='#[output application/json&#10;---&#10;{&#10;	message: "Before Bulk Insert Sales Items to DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;    	items: vars.requestPayload.items map {&#10;    		itemId: $.itemId&#10;    	}&#10;	}&#10;}]' />
+		<until-successful maxRetries="${retry.maxRetries}" doc:name="Until Successful" doc:id="62d0e06d-2f7d-4eb7-b0c9-2ba857f69d05" millisBetweenRetries="${retry.msBetweenRetries}">
+			<try doc:name="Try" doc:id="639db1cd-9e79-41c3-b3c0-760ffcb917e6">
+			<db:bulk-insert doc:name="Bulk Insert Sales Items to DB" doc:id="882a952c-5bc0-4088-aa99-a5e512ae9cef" config-ref="SQL_Database_Config">
+			<db:bulk-input-parameters><![CDATA[#[vars.createSalesItemsDBPayload default []]]]></db:bulk-input-parameters>
+			<db:sql><![CDATA[INSERT INTO sales_items (item_id,transaction_id,product_name,price,quantity)
+VALUES (:item_id,:transaction_id,:product_name,:price,:quantity);]]></db:sql>
+		</db:bulk-insert>
+			<error-handler>
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0b6c4612-fd74-4b21-9e23-4661b154a07e" type="DB:CONNECTIVITY">
+					<logger level="ERROR" doc:name="Database Connection Failed" doc:id="a7103290-9a11-469e-b2a8-5ff88ad0bf1f" message='#[output application/json&#10;---&#10;{&#10;	message: "Database Connection Failed",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;		error: {&#10;			description: error.description&#10;		}&#10;	}&#10;}]' />
+				</on-error-propagate>
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="c3679469-2de8-4c16-a794-bee1b2d95a3e">
+					<logger level="ERROR" doc:name="Failed to Insert Sales Items to DB" doc:id="de022a1e-7d28-4828-8595-2d8e9ceba4a5" message='#[output application/json&#10;---&#10;{&#10;	message: "Failed to Insert Sales Items to DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;		error: {&#10;			description: error.description&#10;		}&#10;	}&#10;}]' />
+					<ee:transform doc:name="Set Error Params" doc:id="13bee5e7-aff5-4244-b672-d8eae40b23e6">
+						<ee:message />
+						<ee:variables>
+							<ee:set-variable resource="dataweave/errorParamsMapping.dwl" variableName="errorParams" />
+						</ee:variables>
+					</ee:transform>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		</until-successful>
+		<validation:is-null doc:name="Is errorParams Variable Null?" doc:id="b22288b2-4c38-484c-b43c-19e2bdb71250" value="#[vars.errorParams]" message="#[vars.errorParams.description]" />
+		<logger level="INFO" doc:name="After Bulk Insert Sales Items to DB" doc:id="5b8b8969-7324-4271-8dd1-89c13ead6fa9" message='#[output application/json&#10;---&#10;{&#10;	message: "After Bulk Insert Sales Items to DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;    	items: vars.requestPayload.items map {&#10;    		itemId: $.itemId&#10;    	}&#10;	}&#10;}]' />
+		<ee:transform doc:name="Build JSON Response" doc:id="81567c9e-7904-4db4-908e-a4c07f744112" >
+			<ee:message >
+				<ee:set-payload resource="dataweave/salesItemsCreationResponsePayload.dwl" />
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>

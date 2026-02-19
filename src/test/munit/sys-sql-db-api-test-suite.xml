@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="sys-sql-db-api-test-suite.xml" />
+	<munit:test name="post-sales-success-test" doc:id="a75c8715-515e-45bc-968f-a9e2f6b4bb49" >
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="Mock - Insert Sales Record to DB" doc:id="de0c7e77-beaa-4a4d-b66d-273857748caf" processor="db:insert">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Insert Sales Record to DB" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="c65be468-a8ac-4aa6-b62e-63a33396b998" >
+				<munit:payload value='#[output application/json&#10;---&#10;{&#10;  "transactionId": "B10001",&#10;  "source": "Blue App",&#10;  "customerName": "Nicole Blue",&#10;  "deliveryAddress": "5 St. Barangay 456, Manila",&#10;  "customerAge": 29,&#10;  "customerGender": "F",&#10;  "customerContact": "+639999999789",&#10;  "totalAmount": 3398,&#10;  "paymentType": "Cash",&#10;  "transactionDate": "2025-09-30T10:00:00Z"&#10;}]' mediaType="application/json" />
+				<munit:variables >
+					<munit:variable key="appName" value="sys-sql-db-api" />
+					<munit:variable key="correlationId" value="3716f1f2-dd32-4f61-9326-ca11702da44e" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="post:\sales:application\json:sys-sql-api-config" doc:id="650a2862-b875-4ad9-9f3e-2a9875bdfc4a" name="post:\sales:application\json:sys-sql-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert - Code = 201" doc:id="5906f480-16ef-489a-ad26-4da41a55d082" actual="#[payload.code]" expected="#[201]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="post-sales-items-success-test" doc:id="834b7c86-ca60-47c1-ae8f-330f7fd8a0aa" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock - Bulk Insert Sales Items to DB" doc:id="f1e10908-89c0-4007-91dc-94dbf41e8f33" processor="db:bulk-insert">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Bulk Insert Sales Items to DB" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="6dcfdc32-c449-42f0-a914-eecfd2de6065" >
+				<munit:payload value='#[output application/json&#10;---&#10;{&#10;  "items": [&#10;    {&#10;      "itemId": "B10001-001",&#10;      "name": "The Chronicles of Narnia: Prince Caspian",&#10;      "price": 1499,&#10;      "quantity": 1&#10;    },&#10;    {&#10;      "itemId": "B10001-002",&#10;      "name": "Lord of the Rings: The Fellowship of the Ring",&#10;      "price": 1899,&#10;      "quantity": 1&#10;    }&#10;  ]&#10;}]' mediaType="application/json" />
+				<munit:attributes value='#[output application/json&#10;---&#10;{&#10;	uriParams: {&#10;		transactionId: "B10001"&#10;	}&#10;}]' />
+				<munit:variables >
+					<munit:variable key="appName" value="sys-sql-db-api" />
+					<munit:variable key="correlationId" value="3716f1f2-dd32-4f61-9326-ca11702da44e" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="post:\sales\(transactionId)\items:application\json:sys-sql-api-config" doc:id="4fbe3406-403b-4f0d-ae60-d403ddac657b" name="post:\sales\(transactionId)\items:application\json:sys-sql-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert - Code = 20" doc:id="a472093a-f34a-4085-8b88-a38f90d30d16" actual="#[payload.code]" expected="#[201]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="get-sales-success-test" doc:id="8d98baef-dc63-4b1c-b1ff-14df975b54d7" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock - Retrieve Sales Details from DB" doc:id="31c6ed9c-1c8d-4f51-a813-b345b74564ae" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Retrieve Sales Details from DB" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value='#[output application/json&#10;---&#10;[&#10;  {&#10;    "transaction_id": "B10001",&#10;    "source": "Blue App",&#10;    "customer_name": "Nicole Blue",&#10;    "delivery_address": "5 St. Barangay 456, Manila",&#10;    "customer_contact": "+639999999789",&#10;    "customer_age": "29",&#10;    "customer_gender": "F",&#10;    "total_amount": "3398.00",&#10;    "payment_type": "Cash",&#10;    "transaction_date": "2025-09-30 18:00:00"&#10;  }&#10;]]' mediaType="application/json" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<munit:set-event doc:name="Set Event" doc:id="6365f2ee-a29c-4e4e-be77-80f1ca821520" >
+				<munit:attributes value='#[output application/json&#10;---&#10;{&#10;	uriParams: {&#10;		transactionId: "B10001"&#10;	}&#10;}]' />
+				<munit:variables >
+					<munit:variable key="appName" value="sys-sql-db-api" />
+					<munit:variable key="correlationId" value="3716f1f2-dd32-4f61-9326-ca11702da44e" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="get:\sales\(transactionId):sys-sql-api-config" doc:id="ee6eb093-41ff-4e91-b2ac-45601b89bf13" name="get:\sales\(transactionId):sys-sql-api-config"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert doc:name="Assert - Payload Must Not be Null" doc:id="bcec9365-3ae0-4da7-b0f4-043f7b0d1ef6" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="post-sales-error-test" doc:id="37c7de6a-ab1f-4778-9371-6e9f52e676c1" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock - Insert Sales Record to DB" doc:id="dd0a5cdc-f803-4c08-8d57-95338038f6a4" processor="db:insert" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Insert Sales Record to DB" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="DB:BAD_SQL_SYNTAX" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock - Is errorParams Variable Null?" doc:id="a2a7daa6-05b2-4cbb-ac72-9163701673c4" processor="validation:is-null">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Is errorParams Variable Null?" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="fc9ad057-c58e-4e74-ad03-2eec88968181" >
+				<munit:payload value='#[output application/json&#10;---&#10;{&#10;  "transactionId": "B10001",&#10;  "source": "Blue App",&#10;  "customerName": "Nicole Blue",&#10;  "deliveryAddress": "5 St. Barangay 456, Manila",&#10;  "customerAge": 29,&#10;  "customerGender": "F",&#10;  "customerContact": "+639999999789",&#10;  "totalAmount": 3398,&#10;  "paymentType": "Cash",&#10;  "transactionDate": "2025-09-30T10:00:00Z"&#10;}]' mediaType="application/json" />
+				<munit:variables >
+					<munit:variable key="appName" value="sys-sql-db-api" />
+					<munit:variable key="correlationId" value="3716f1f2-dd32-4f61-9326-ca11702da44e" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="post:\sales:application\json:sys-sql-api-config" doc:id="071c0f98-60f8-4472-9968-e1b2b6d15505" name="post:\sales:application\json:sys-sql-api-config" />
+		</munit:execution>
+	</munit:test>
+	<munit:test name="post-sales-items-error-test" doc:id="06f7dbee-c8be-45fe-91f2-58b2d33186a9" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock - Bulk Insert Sales Items to DB" doc:id="44d3b660-3b40-4baa-be7e-dda9ce7b9233" processor="db:bulk-insert" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Bulk Insert Sales Items to DB" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="DB:BAD_SQL_SYNTAX" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock - Is errorParams Variable Null?" doc:id="3c29d982-4425-4bd6-a429-7073ee494a71" processor="validation:is-null">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Is errorParams Variable Null?" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="c4d2af99-d365-4ee7-88f4-42c8057f3efd" >
+				<munit:payload value='#[output application/json&#10;---&#10;{&#10;  "items": [&#10;    {&#10;      "itemId": "B10001-001",&#10;      "name": "The Chronicles of Narnia: Prince Caspian",&#10;      "price": 1499,&#10;      "quantity": 1&#10;    },&#10;    {&#10;      "itemId": "B10001-002",&#10;      "name": "Lord of the Rings: The Fellowship of the Ring",&#10;      "price": 1899,&#10;      "quantity": 1&#10;    }&#10;  ]&#10;}]' mediaType="application/json" />
+				<munit:attributes value='#[output application/json&#10;---&#10;{&#10;	uriParams: {&#10;		transactionId: "B10001"&#10;	}&#10;}]' />
+				<munit:variables >
+					<munit:variable key="appName" value="sys-sql-db-api" />
+					<munit:variable key="correlationId" value="3716f1f2-dd32-4f61-9326-ca11702da44e" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="post:\sales\(transactionId)\items:application\json:sys-sql-api-config" doc:id="cfa2e5f1-935d-4196-8012-51fcb68b4f9a" name="post:\sales\(transactionId)\items:application\json:sys-sql-api-config" />
+		</munit:execution>
+	</munit:test>
+	<munit:test name="get-sales-error-test" doc:id="e6e60fa1-b421-4381-a020-c8f3f1b861e6" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock - Retrieve Sales Details from DB" doc:id="00189825-864e-458b-b8a3-73d8ab020e6e" processor="db:select" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Retrieve Sales Details from DB" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="DB:BAD_SQL_SYNTAX" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock - Is errorParams Variable Null?" doc:id="20384442-8211-46e2-8ea9-f619e7e6f444" processor="validation:is-null">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Is errorParams Variable Null?" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock - Is Not Empty Collection?" doc:id="21b0de1b-a018-4914-bb34-5c9a3320b70e" processor="validation:is-not-empty-collection">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Is Not Empty Collection?" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="039704bf-6107-4b92-9b01-3f17f554009e" >
+				<munit:attributes value='#[output application/json&#10;---&#10;{&#10;	uriParams: {&#10;		transactionId: "B10001"&#10;	}&#10;}]' />
+				<munit:variables >
+					<munit:variable key="appName" value="sys-sql-db-api" />
+					<munit:variable key="correlationId" value="3716f1f2-dd32-4f61-9326-ca11702da44e" />
+				</munit:variables>
+			</munit:set-event>
+			<flow-ref doc:name="get:\sales\(transactionId):sys-sql-api-config" doc:id="14586be7-4a7b-4daf-ac37-78959d7277da" name="get:\sales\(transactionId):sys-sql-api-config" />
+		</munit:execution>
+	</munit:test>
+	<munit:test name="sys-sql-api-main-test" doc:id="5bffad1e-64f8-4b89-b837-1160edcf7476" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock - Listener" doc:id="e188963e-f658-49c3-85ce-0600ed388daa" processor="http:listener">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="sys-sql-api-httpListenerConfig" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock - APIkit Router" doc:id="72dd0533-fc2d-473c-ab29-8937ee5688ae" processor="apikit:router">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="sys-sql-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="0e61a6f2-caa9-4ab1-9f79-1762190b1c76" >
+				<munit:attributes value='#[output application/json&#10;---&#10;{&#10;	uriParams: {&#10;		transactionId: "B10001"&#10;	}&#10;}]' />
+			</munit:set-event>
+			<flow-ref doc:name="sys-sql-api-main" doc:id="bddcac5e-17f2-40a8-a2e4-df4d7618ff7f" name="sys-sql-api-main"/>
+		</munit:execution>
+	</munit:test>
+
+
+</mule>

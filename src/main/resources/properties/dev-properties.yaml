@@ -1,0 +1,22 @@
+#HTTP Listener Configuration
+http:
+  port: "8082"
+  timeout: "60000"
+  connectionIdleTimeout: "60000"
+
+#SQL Database Configuration
+db:
+  host: "35.198.240.203"
+  port: "3306"
+  name: "heritage_bookshop_db"
+  username: "![kVSLxCwjLTCGofsgbUDe0g==]"
+  password: "![px5ALOS3RlCJfRVLHV9S1g==]"
+  
+#Pre-Defined Parameters
+app:
+  name: "sys-sql-db-api"
+  
+#Until Successful Scope Configuration
+retry:
+  maxRetries: "2"
+  msBetweenRetries: "3000"

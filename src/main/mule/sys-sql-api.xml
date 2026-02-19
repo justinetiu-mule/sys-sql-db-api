@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <flow name="sys-sql-api-main" doc:id="aa77bd6b-080e-4d86-9ebb-4182a5c2487b">
+        <http:listener config-ref="sys-sql-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <ee:transform doc:name="Set correlationId and appName Variable" doc:id="755f3d8e-9ac3-4b7b-8143-9d8894644a17" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="correlationId" ><![CDATA[%dw 2.0
+output application/java
+---
+correlationId]]></ee:set-variable>
+				<ee:set-variable variableName="appName" ><![CDATA[%dw 2.0
+output application/java
+---
+Mule::p("app.name")]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<apikit:router config-ref="sys-sql-api-config" />
+    </flow>
+    <!-- <flow name="sys-sql-api-console">
+        <http:listener config-ref="sys-sql-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="sys-sql-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+-&#45;&#45;
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow> -->
+    <flow name="get:\sales\(transactionId):sys-sql-api-config" doc:id="37f6ec95-ee24-4fb1-a51e-e889f8d1cd15">
+        <ee:transform doc:name="Set transactionId Variable" doc:id="bd472743-8c47-49e6-a598-467ee2e6135f">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="transactionId" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.uriParams.transactionId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Start of Retrieve Sales Details Flow" doc:id="3bb2fd45-921b-40f4-8a23-8b553e267b0b" message='#[output application/json&#10;---&#10;{&#10;	message: "Start of Retrieve Sales Details Flow",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId&#10;	}&#10;}]'/>
+		<flow-ref doc:name="get-sales-sub-flow" doc:id="3a46f868-2d87-4609-b9b6-d6320786846e" name="get-sales-sub-flow"/>
+		<logger level="INFO" doc:name="End of Retrieve Sales Details Flow" doc:id="d358b8ae-6b53-4c05-964c-94e8adba2f10" message='#[output application/json&#10;---&#10;{&#10;	message: "End of Retrieve Sales Details Flow",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId&#10;	}&#10;}]'/>
+    </flow>
+    <flow name="post:\sales\(transactionId)\items:application\json:sys-sql-api-config" doc:id="0ff61f7b-d8df-434c-bccd-30b362faed1d">
+        <ee:transform doc:name="Set transactionId and requestPayload Variables" doc:id="3ce6f1ad-e05f-440b-931a-2127faa6d5ae">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="transactionId"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.uriParams.transactionId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Start of Create Sales Items Flow" doc:id="c366dd7b-64ca-4215-a610-ff054d0d51d5" message='#[output application/json&#10;---&#10;{&#10;	message: "Start of Create Sales Items Flow",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;    	items: vars.requestPayload.items map {&#10;    		itemId: $.itemId&#10;    	}&#10;	}&#10;}]' />
+		<flow-ref doc:name="post-sales-items-sub-flow" doc:id="972b9afa-b76b-4ef8-898b-8cf050de5308" name="post-sales-items-sub-flow"/>
+		<logger level="INFO" doc:name="End of Create Sales Items Flow" doc:id="ee79a5ed-b81c-4978-ac70-5e448c3c6d1f" message='#[output application/json&#10;---&#10;{&#10;	message: "End of Create Sales Items Flow",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;    	items: vars.requestPayload.items map {&#10;    		itemId: $.itemId&#10;    	}&#10;	}&#10;}]' />
+    </flow>
+    <flow name="post:\sales:application\json:sys-sql-api-config" doc:id="a740e994-b378-4ecf-a812-fb7404ebfa45">
+        <ee:transform doc:name="Set transactionId and requestPayload Variables" doc:id="0be5a1bd-834b-4415-a93c-0c6a924b107c">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="requestPayload"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="transactionId"><![CDATA[%dw 2.0
+output application/java
+---
+payload.transactionId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Start of Create Sales Flow" doc:id="fc672fb1-fc30-47d0-9f9d-ce9c13d06e23" message='#[output application/json&#10;---&#10;{&#10;	message: "Start of Create Sales Flow",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId&#10;	}&#10;}]' />
+		<flow-ref doc:name="post-sales-sub-flow" doc:id="234fb29f-dd9d-4c66-b058-c125a0568ae0" name="post-sales-sub-flow"/>
+		<logger level="INFO" doc:name="End of Create Sales Flow" doc:id="81f2de26-2bf5-41ef-a017-354d0ed6fbdf" message='#[output application/json&#10;---&#10;{&#10;	message: "End of Create Sales Flow",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId&#10;	}&#10;}]' />
+    </flow>
+</mule>

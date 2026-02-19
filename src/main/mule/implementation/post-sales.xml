@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<sub-flow name="post-sales-sub-flow" doc:id="b9d6396e-c7c8-4d0a-bb60-181f0e21a50e" >
+		<ee:transform doc:name="Map Request Payload to Sales Table Columns" doc:id="6bc84b13-42aa-4154-b40b-005ae6f05d22">
+			<ee:message>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable resource="dataweave/createSalesDBMappingPayload.dwl" variableName="createSalesDBPayload" />
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Before Insert Sales Record to DB" doc:id="1df597cf-3c31-40c0-b388-eca33256b3fd" message='#[output application/json&#10;---&#10;{&#10;	message: "Before Insert Sales Record to DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId&#10;	}&#10;}]' />
+		<until-successful maxRetries="${retry.maxRetries}" doc:name="Until Successful" doc:id="96d61e72-d2e4-4712-bc1f-71e5f58301a1" millisBetweenRetries="${retry.msBetweenRetries}">
+			<try doc:name="Try" doc:id="08953847-b252-485c-9d80-2d0cfc16dbf8">
+			<db:insert doc:name="Insert Sales Record to DB" doc:id="74766ecf-a218-4ab3-a04b-7de93d1174e6" config-ref="SQL_Database_Config">
+			<db:sql><![CDATA[INSERT INTO sales (transaction_id,source,customer_name,delivery_address,customer_contact,customer_age,customer_gender,total_amount,payment_type,transaction_date)
+VALUES (:transaction_id,:source,:customer_name,:delivery_address,:customer_contact,:customer_age,:customer_gender,:total_amount,:payment_type,:transaction_date);]]></db:sql>
+			<db:input-parameters><![CDATA[#[vars.createSalesDBPayload default {}]]]></db:input-parameters>
+		</db:insert>
+				<error-handler >
+					<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ebf38126-9f1e-4f58-9147-63940da33aee" type="DB:CONNECTIVITY" >
+						<logger level="ERROR" doc:name="Database Connection Failed" doc:id="1f649eca-2d71-4575-b0e1-96f8256c3598" message='#[output application/json&#10;---&#10;{&#10;	message: "Database Connection Failed",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;		error: {&#10;			description: error.description&#10;		}&#10;	}&#10;}]' />
+					</on-error-propagate>
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="fa852129-6b34-452c-af2c-0142315de5cb" >
+						<logger level="ERROR" doc:name="Failed to Insert Sales to DB" doc:id="5e0bc852-211d-42be-b82a-203784c6b2fa" message='#[output application/json&#10;---&#10;{&#10;	message: "Failed to Insert Sales to DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;		error: {&#10;			description: error.description&#10;		}&#10;	}&#10;}]' />
+						<ee:transform doc:name="Set Error Params" doc:id="b1171f49-976a-427e-9b90-1ca5b9281b23">
+							<ee:message />
+							<ee:variables>
+								<ee:set-variable resource="dataweave/errorParamsMapping.dwl" variableName="errorParams" />
+							</ee:variables>
+						</ee:transform>
+					</on-error-continue>
+				</error-handler>
+		</try>
+		</until-successful>
+		<validation:is-null doc:name="Is errorParams Variable Null?" doc:id="139e3e3b-dbe3-40ee-957f-6fdc4bb7cd8c" value="#[vars.errorParams]" message="#[vars.errorParams.description]" />
+		<logger level="INFO" doc:name="After Insert Sales Record to DB" doc:id="6ed068a1-42dc-41f7-a2ca-9d80bfdb57ee" message='#[output application/json&#10;---&#10;{&#10;	message: "Before Insert Sales Record to DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId&#10;	}&#10;}]' />
+		<ee:transform doc:name="Build JSON Response" doc:id="0d72dc80-9ff7-4259-8488-1db9dc8f54e6" >
+			<ee:message >
+				<ee:set-payload resource="dataweave/salesCreationResponsePayload.dwl" />
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>

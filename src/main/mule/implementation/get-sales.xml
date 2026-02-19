@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<sub-flow name="get-sales-sub-flow" doc:id="fa0acc7e-6d84-4c85-b687-e5c304e17eed" >
+		<logger level="INFO" doc:name="Before Retrieve Sales Details from DB" doc:id="14366e5d-884a-4d6a-a34c-0e578d542c17" message='#[output application/json&#10;---&#10;{&#10;	message: "Before Retrieve Sales Details from DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId&#10;	}&#10;}]' />
+		<until-successful maxRetries="${retry.maxRetries}" doc:name="Until Successful" doc:id="d2f8ad49-dfd2-4a22-977c-3be236a409a4" millisBetweenRetries="${retry.msBetweenRetries}">
+			<try doc:name="Try" doc:id="59282f6b-ca3b-463e-82d9-4c625c364f47" >
+				<db:select doc:name="Retrieve Sales Details from DB" doc:id="34d00e6b-0547-444f-97ec-b29eb6c360cb" config-ref="SQL_Database_Config">
+			<db:sql><![CDATA[SELECT sales.transaction_id,sales.source,sales.customer_name,sales.delivery_address,sales.customer_contact,
+sales.customer_age,sales.customer_gender,sales.total_amount,sales.payment_type,sales.transaction_date,
+items.item_id,items.product_name,items.price,items.quantity
+FROM sales
+INNER JOIN sales_items items
+ON sales.transaction_id = items.transaction_id
+WHERE sales.transaction_id = :transaction_id;]]></db:sql>
+			<db:input-parameters><![CDATA[#[output application/java
+---
+{
+	transaction_id: vars.transactionId default ""
+}]]]></db:input-parameters>
+		</db:select>
+				<error-handler >
+					<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e0df4e26-6350-489d-bdf3-7b6bb75317fb" type="DB:CONNECTIVITY">
+						<logger level="ERROR" doc:name="Database Connection Failed" doc:id="951a5f30-7c0d-456f-807f-c1dd133c6ccc" message='#[output application/json&#10;---&#10;{&#10;	message: "Database Connection Failed",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;		error: {&#10;			description: error.description&#10;		}&#10;	}&#10;}]'/>
+					</on-error-propagate>
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="e90d38fe-5350-4276-8f7f-b165bb123367" >
+						<logger level="ERROR" doc:name="Failed to Retrieve Sales from DB" doc:id="bcdb186b-239d-49bf-aacf-d39718640e0b" message='#[output application/json&#10;---&#10;{&#10;	message: "Failed to Retrieve Sales from DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId,&#10;		error: {&#10;			description: error.description&#10;		}&#10;	}&#10;}]' />
+						<ee:transform doc:name="Set Error Params" doc:id="28293c6b-9c96-4dbc-b835-fa7d46af39eb" >
+							<ee:message >
+							</ee:message>
+							<ee:variables >
+								<ee:set-variable resource="dataweave/errorParamsMapping.dwl" variableName="errorParams" />
+							</ee:variables>
+						</ee:transform>
+					</on-error-continue>
+				</error-handler>
+			</try>
+		</until-successful>
+		<validation:is-null doc:name="Is errorParams Variable Null?" doc:id="3f64583b-c0e3-49e2-94ed-3f99bfc6ddb0" value="#[vars.errorParams]" message="#[vars.errorParams.description]"/>
+		<logger level="INFO" doc:name="After Retrieve Sales Details from DB" doc:id="f1e2148e-a1a9-43ea-aa0f-23c626f23c29" message='#[output application/json&#10;---&#10;{&#10;	message: "Before Retrieve Sales Details from DB",&#10;	correlationId: vars.correlationId,&#10;	appName: vars.appName,&#10;	data: {&#10;		transactionId: vars.transactionId&#10;	}&#10;}]' />
+		<validation:is-not-empty-collection doc:name="Is Not Empty Collection?" doc:id="ccd6e3d3-5cd7-4a68-bb9f-19c9d834a683" message='#["No sales record found in the database with transaction ID " ++ (vars.transactionId default "") ++ "."]'/>
+		<ee:transform doc:name="Build Sales Details JSON Response" doc:id="a3cb73a9-3abd-40f3-87a9-230b64e1dcca" >
+			<ee:message >
+				<ee:set-payload resource="dataweave/salesDetailsMappingResponsePayload.dwl" />
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>
