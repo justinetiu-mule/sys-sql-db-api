@@ -18,7 +18,11 @@ http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/m
 		<secure-properties:encrypt algorithm="Blowfish" />
 	</secure-properties:config>
 	<db:config name="SQL_Database_Config" doc:name="Database Config" doc:id="7ba818b3-8522-4bba-bf5b-ffb8c08780ee" >
-		<db:my-sql-connection port="${db.port}" user="${secure::db.username}" password="${secure::db.password}" database="${db.name}" host="${db.host}"/>
+		<db:my-sql-connection port="${db.port}" user="${secure::db.username}" password="${secure::db.password}" database="${db.name}" host="${db.host}">
+			<reconnection >
+				<reconnect-forever />
+			</reconnection>
+		</db:my-sql-connection>
 	</db:config>
 	<configuration-properties doc:name="Configuration properties" doc:id="76e60d79-97e0-40aa-9c10-9b3ad1010235" file="properties/${env}-properties.yaml" />
 	<configuration doc:name="Configuration" doc:id="5d45b642-922d-4a2b-beba-b01c896f8a33" defaultErrorHandler-ref="global-error-handler" />
